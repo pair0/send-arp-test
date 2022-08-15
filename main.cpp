@@ -111,8 +111,7 @@ Mac ArpRequest(pcap_t* handle, uint8_t* mac, char* ip, char* snder_ip) { //ARP R
             break;
         }
         reply_packet = (struct EthArpPacket*)(packet_re);
-
-        if (reply_packet->eth_.type_ == htons(EthHdr::Arp) && reply_packet->arp_.op_ == htons(ArpHdr::Reply)) {
+        if (reply_packet->eth_.type_ == htons(EthHdr::Arp) && reply_packet->arp_.op_ == htons(ArpHdr::Reply) && reply_packet->arp_.sip() == (Ip(snder_ip))) {
             break;
         }
     }
@@ -143,7 +142,7 @@ int ArpReply(pcap_t* handle, uint8_t* mac, Mac query_mac, char* snder_ip, char* 
             fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
             return -1;
         }
-        printf("ARP Spoofing\n");
+        printf("%s ARP Spoofing\n", snder_ip);
         sleep(3);
     }
     free(s_packet);

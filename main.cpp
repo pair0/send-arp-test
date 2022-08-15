@@ -11,8 +11,6 @@
 #include <unistd.h>             //for close function
 #include <string.h>
 #include <netinet/ether.h>
-#include <thread>               //스레드 사용
-#include <mutex>                //
 #include "ethhdr.h"
 #include "arphdr.h"
 
@@ -23,22 +21,8 @@ struct EthArpPacket final {
 };
 #pragma pack(pop)
 
-void  INThandler(int sig) { //Ctrl+C 시 인터럽트 발생
-    char  c;
-
-    signal(sig, SIG_IGN);
-    printf("OUCH, did you hit Ctrl-C?\n"
-        "Do you really want to quit? [y/n] ");
-    c = getchar();
-    if (c == 'y' || c == 'Y')
-        exit(0);
-    else
-        signal(SIGINT, INThandler);
-    getchar(); // Get new line character
-}
-
 void usage() { //경고 메시지
-    printf("syntax: send-arp-test <interface>\n");
+    printf("syntax: send-arp <interface> <sender ip> <target ip> [<sender ip 2> <target ip 2> ...]\n");
     printf("sample: send-arp-test wlan0\n");
 }
 
@@ -153,8 +137,6 @@ int ArpReply(pcap_t* handle, uint8_t* mac, Mac query_mac, char* snder_ip, char* 
     s_packet->arp_.tmac_ = Mac(query_mac);
     s_packet->arp_.tip_ = htonl(Ip(snder_ip));
 
-    //signal(SIGINT, INThandler); // 인터럽트 시그널 콜백 설정
-
     while (true) {
         int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(s_packet), sizeof(EthArpPacket));
         if (res != 0) {
@@ -163,7 +145,6 @@ int ArpReply(pcap_t* handle, uint8_t* mac, Mac query_mac, char* snder_ip, char* 
         }
         printf("ARP Spoofing\n");
         sleep(3);
-        pause();
     }
     free(s_packet);
     return 1;
@@ -204,13 +185,10 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    //mutex mtx;
     char* dev = *(argv + 1); //interface
     char* snder_ip = *(argv + 2);   //snder ip address
     char* target_ip = *(argv + 3);  //target ip address
-   // std::thread t1 = std::thread(ArpSpoofing(argv[3], argv[4]));
     ArpSpoofing(dev, snder_ip, target_ip);
-    printf("매개변수 size : %d\n", argc - 2 / 2);
 
     return 0;
 }
